@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -208,10 +209,6 @@ input{
         transform:translate(-50%,-120px);
     }
 }
-
-.hidden{
-    display:none!important;
-}
 </style>
 </head>
 
@@ -281,7 +278,6 @@ input{
 
 </div>
 
-
 <script type="importmap">
 {
     "imports":{
@@ -291,19 +287,12 @@ input{
 }
 </script>
 
-
 <script type="module">
 
 import * as THREE from "three";
 
-
-/* -----------------------------
-   THREE.JS SCENE
------------------------------ */
-
 const scene =
     new THREE.Scene();
-
 
 const camera =
     new THREE.PerspectiveCamera(
@@ -313,9 +302,7 @@ const camera =
         1000
     );
 
-
 camera.position.z = 18;
-
 
 const renderer =
     new THREE.WebGLRenderer({
@@ -323,33 +310,26 @@ const renderer =
         alpha:true
     });
 
-
 renderer.setPixelRatio(
     Math.min(devicePixelRatio,2)
 );
-
 
 renderer.setSize(
     innerWidth,
     innerHeight
 );
 
-
 document
     .getElementById("scene")
     .appendChild(renderer.domElement);
 
 
-/* -----------------------------
-   PARTICLE SWARM
------------------------------ */
+/* PARTICLE SWARM */
 
 const group =
     new THREE.Group();
 
-
 scene.add(group);
-
 
 const geometry =
     new THREE.TetrahedronGeometry(
@@ -357,15 +337,12 @@ const geometry =
         0
     );
 
-
 const material =
     new THREE.MeshBasicMaterial({
         color:0x00ff99
     });
 
-
 const particleCount = 4200;
-
 
 const particles =
     new THREE.InstancedMesh(
@@ -374,10 +351,8 @@ const particles =
         particleCount
     );
 
-
 const dummy =
     new THREE.Object3D();
-
 
 for(
     let i = 0;
@@ -400,7 +375,6 @@ for(
             2 * Math.random() - 1
         );
 
-
     dummy.position.set(
 
         radius *
@@ -413,18 +387,14 @@ for(
 
         radius *
         Math.cos(beta)
-
     );
-
 
     const scale =
         0.35 +
         Math.random() *
         1.4;
 
-
     dummy.scale.setScalar(scale);
-
 
     dummy.rotation.set(
         Math.random()*6,
@@ -432,9 +402,7 @@ for(
         Math.random()*6
     );
 
-
     dummy.updateMatrix();
-
 
     particles.setMatrixAt(
         i,
@@ -442,27 +410,19 @@ for(
     );
 }
 
-
 group.add(particles);
 
 
-/* -----------------------------
-   JARVIS STATE
------------------------------ */
+/* JARVIS STATES */
 
 const states = {
 
     idle:0x00ff99,
-
     listening:0x00ffff,
-
     thinking:0xa855f7,
-
     speaking:0xffa500,
-
     error:0xff3333
 };
-
 
 window.jarvisState =
 function(state){
@@ -470,28 +430,19 @@ function(state){
     const normalized =
         state.toLowerCase();
 
-
     document
         .getElementById("state")
         .textContent =
         normalized.toUpperCase();
 
-
     material.color.setHex(
         states[normalized] ||
         states.idle
     );
-
-
-    if(normalized === "listening"){
-        particles.rotation.y += 0.03;
-    }
 };
 
 
-/* -----------------------------
-   TRANSCRIPT
------------------------------ */
+/* TRANSCRIPT */
 
 window.jarvisTranscript =
 function(text){
@@ -503,9 +454,7 @@ function(text){
 };
 
 
-/* -----------------------------
-   AI RESPONSE
------------------------------ */
+/* AI RESPONSE */
 
 window.jarvisAnswer =
 function(text){
@@ -515,11 +464,9 @@ function(text){
         .textContent =
         text;
 
-
     window.jarvisState(
         "speaking"
     );
-
 
     setTimeout(
         () => window.jarvisState("idle"),
@@ -528,9 +475,7 @@ function(text){
 };
 
 
-/* -----------------------------
-   ERROR
------------------------------ */
+/* ERROR */
 
 window.jarvisError =
 function(text){
@@ -540,11 +485,9 @@ function(text){
         .textContent =
         text;
 
-
     window.jarvisState(
         "error"
     );
-
 
     setTimeout(
         () => window.jarvisState("idle"),
@@ -553,9 +496,7 @@ function(text){
 };
 
 
-/* -----------------------------
-   ANIMATION
------------------------------ */
+/* ANIMATION */
 
 function animate(){
 
@@ -563,20 +504,16 @@ function animate(){
         animate
     );
 
-
     group.rotation.y +=
         0.0015;
-
 
     group.rotation.x =
         Math.sin(
             Date.now()*0.00025
         ) * 0.12;
 
-
     particles.rotation.z +=
         0.0005;
-
 
     renderer.render(
         scene,
@@ -584,13 +521,10 @@ function animate(){
     );
 }
 
-
 animate();
 
 
-/* -----------------------------
-   RESIZE
------------------------------ */
+/* RESIZE */
 
 addEventListener(
     "resize",
@@ -610,9 +544,7 @@ addEventListener(
 );
 
 
-/* -----------------------------
-   VOICE
------------------------------ */
+/* VOICE */
 
 window.listen =
 function(){
@@ -620,7 +552,6 @@ function(){
     window.jarvisState(
         "listening"
     );
-
 
     if(window.Android){
 
@@ -635,9 +566,7 @@ function(){
 };
 
 
-/* -----------------------------
-   HOME
------------------------------ */
+/* HOME */
 
 window.goHome =
 function(){
@@ -647,14 +576,11 @@ function(){
         Android.execute(
             "home"
         );
-
     }
 };
 
 
-/* -----------------------------
-   ASK AI
------------------------------ */
+/* ASK AI */
 
 window.askAI =
 function(){
@@ -663,7 +589,6 @@ function(){
         prompt(
             "Ask JARVIS"
         );
-
 
     if(
         question &&
@@ -674,17 +599,20 @@ function(){
             "thinking"
         );
 
-
         Android.askAI(
             question
+        );
+
+    }else if(!window.Android){
+
+        window.jarvisError(
+            "Android bridge unavailable"
         );
     }
 };
 
 
-/* -----------------------------
-   ACCESSIBILITY
------------------------------ */
+/* ACCESSIBILITY */
 
 window.enableAccessibility =
 function(){
@@ -693,13 +621,16 @@ function(){
 
         Android.openAccessibility();
 
+    }else{
+
+        window.jarvisError(
+            "Android bridge unavailable"
+        );
     }
 };
 
 
-/* -----------------------------
-   TEST HOME
------------------------------ */
+/* TEST HOME */
 
 window.testHome =
 function(){
@@ -713,9 +644,7 @@ function(){
 };
 
 
-/* -----------------------------
-   SETTINGS
------------------------------ */
+/* SETTINGS */
 
 window.toggleSettings =
 function(){
@@ -724,7 +653,6 @@ function(){
         document.getElementById(
             "panel"
         );
-
 
     if(
         panel.style.display ===
@@ -742,9 +670,7 @@ function(){
 };
 
 
-/* -----------------------------
-   SAVE GROQ KEY
------------------------------ */
+/* SAVE GROQ KEY */
 
 window.saveKey =
 function(){
@@ -755,7 +681,6 @@ function(){
         .value
         .trim();
 
-
     if(!key){
 
         alert(
@@ -765,32 +690,43 @@ function(){
         return;
     }
 
+    if(window.Android){
 
-    /*
-       The key is kept in the
-       WebView local storage.
+        Android.saveKey(key);
 
-       The Android bridge can later
-       be connected to encrypted
-       Android storage.
-    */
+        document
+            .getElementById("transcript")
+            .textContent =
+            "AI KEY SAVED";
 
-    localStorage.setItem(
-        "groq_key",
-        key
-    );
+        window.jarvisState(
+            "idle"
+        );
 
+    }else{
 
-    document
-        .getElementById("transcript")
-        .textContent =
-        "AI KEY SAVED";
+        window.jarvisError(
+            "Android bridge unavailable"
+        );
+    }
 };
 
 
-/* -----------------------------
-   INITIAL STATE
------------------------------ */
+/* LOAD SAVED KEY INDICATOR */
+
+window.addEventListener(
+    "load",
+    function(){
+
+        document
+            .getElementById("transcript")
+            .textContent =
+            "SYSTEM READY";
+    }
+);
+
+
+/* INITIAL STATE */
 
 window.jarvisState(
     "idle"
@@ -799,4 +735,4 @@ window.jarvisState(
 </script>
 
 </body>
-  </html>
+              </html>
