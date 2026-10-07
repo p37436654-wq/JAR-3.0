@@ -1,63 +1,67 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({
+      error: "Method not allowed"
+    });
   }
 
   try {
     const { prompt, info } = req.body || {};
 
     if (!prompt || typeof prompt !== "string") {
-      return res.status(400).json({ error: "Prompt is required" });
+      return res.status(400).json({
+        error: "Prompt is required"
+      });
     }
 
     const apiKey = process.env.GROQ_API_KEY;
 
     if (!apiKey) {
       return res.status(500).json({
-        error: "Groq API key is not configured"
+        error: "GROQ_API_KEY is missing"
       });
     }
 
     const system = `
-You are JARVIS, a voice assistant living inside the user's Android phone.
+You are JARVIS, a voice assistant inside an Android phone.
 
-Reply with ONLY one JSON object:
+Return ONLY valid JSON in exactly this format:
 
 {
-  "say": "...",
+  "say": "short natural response",
   "actions": [],
   "more": false
 }
 
-"say" is what you speak aloud.
-Keep it short and natural.
+The "say" field is spoken aloud.
 
-Actions can include:
-open_app{name}
-call{to}
-sms{to,text}
-alarm{hour,minute,label}
-timer{seconds}
-flashlight{on:true/false}
-volume{level:0-100}
-url{url}
-search{query}
-navigate{place}
-settings{page}
-system{what}
-click{text}
-type{text}
-enter{}
-scroll{dir}
-wait{ms}
+Available actions:
+
+open_app
+url
+search
+navigate
+settings
+system
+click
+type
+enter
+scroll
+wait
+call
+sms
+alarm
+timer
+flashlight
+volume
+
+If no action is required, use:
+"actions":[]
 
 Never invent screen text.
 
-If no action is needed, return:
-"actions":[]
-
-If anyone asks who your boss is, say exactly:
-Prem is my boss.
+If asked who your boss is, say:
+"Prem is my boss."
 `;
 
     const response = await fetch(
@@ -76,7 +80,10 @@ Prem is my boss.
           messages: [
             {
               role: "system",
-              content: system + "\n" + (info || "")
+              content:
+                system +
+                "\n\nPHONE INFO:\n" +
+                (info || "No phone information available.")
             },
             {
               role: "user",
@@ -96,8 +103,14 @@ Prem is my boss.
     const data = await response.json();
 
     if (!response.ok) {
-      return res.status(response.status).json({
-        error: "Groq request failed"
+      console.error("GROQ ERROR:", data);
+
+      return res.status(502).json({
+        error: "Groq request failed",
+        details:
+          data?.error?.message ||
+          data?.error ||
+          "Unknown Groq error"
       });
     }
 
@@ -110,15 +123,28 @@ Prem is my boss.
       });
     }
 
+    let parsed;
+
+    try {
+      parsed = JSON.parse(content);
+    } catch (error) {
+      return res.status(502).json({
+        error: "AI returned invalid JSON",
+        raw: content
+      });
+    }
+
     return res.status(200).json({
-      content
+      content: JSON.stringify(parsed)
     });
 
   } catch (error) {
 
+    console.error("SERVER ERROR:", error);
+
     return res.status(500).json({
-      error: "Server error"
+      error: "Server error",
+      details: error?.message || "Unknown error"
     });
   }
   }
-        
