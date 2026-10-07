@@ -21,15 +21,12 @@ import android.widget.Toast
 class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
         super.onCreate(savedInstanceState)
 
         val d = resources.displayMetrics.density
 
         val root = LinearLayout(this).apply {
-
             orientation = LinearLayout.VERTICAL
-
             gravity = Gravity.CENTER_HORIZONTAL
 
             setPadding(
@@ -46,81 +43,72 @@ class MainActivity : Activity() {
 
         val orb = View(this).apply {
 
-            background =
-                GradientDrawable().apply {
-
-                    shape =
-                        GradientDrawable.OVAL
-
-                    setColor(
-                        Color.parseColor("#00E5FF")
-                    )
-                }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(
+                    Color.parseColor("#00E5FF")
+                )
+            }
 
             layoutParams =
                 LinearLayout.LayoutParams(
                     (140 * d).toInt(),
                     (140 * d).toInt()
                 ).apply {
-
                     bottomMargin =
                         (25 * d).toInt()
                 }
         }
 
-        val title =
-            TextView(this).apply {
+        val title = TextView(this).apply {
 
-                text = "JAR 3.0"
+            text = "JAR 3.0"
 
-                textSize = 32f
+            textSize = 32f
 
-                setTextColor(
-                    Color.WHITE
-                )
+            setTextColor(
+                Color.WHITE
+            )
 
-                gravity =
-                    Gravity.CENTER
+            gravity = Gravity.CENTER
 
-                setPadding(
-                    0,
-                    0,
-                    0,
-                    (8 * d).toInt()
-                )
-            }
+            setPadding(
+                0,
+                0,
+                0,
+                (8 * d).toInt()
+            )
+        }
 
-        val subtitle =
-            TextView(this).apply {
+        val subtitle = TextView(this).apply {
 
-                text =
-                    "Your personal voice assistant"
+            text =
+                "Your personal voice assistant"
 
-                textSize = 16f
+            textSize = 16f
 
-                setTextColor(
-                    Color.LTGRAY
-                )
+            setTextColor(
+                Color.LTGRAY
+            )
 
-                gravity =
-                    Gravity.CENTER
+            gravity = Gravity.CENTER
 
-                setPadding(
-                    0,
-                    0,
-                    0,
-                    (25 * d).toInt()
-                )
-            }
+            setPadding(
+                0,
+                0,
+                0,
+                (25 * d).toInt()
+            )
+        }
 
         fun button(
-            text: String,
+            label: String,
             action: () -> Unit
         ): Button {
 
             return Button(this).apply {
 
-                this.text = text
+                text = label
 
                 textSize = 15f
 
@@ -152,9 +140,7 @@ class MainActivity : Activity() {
                 Manifest.permission.READ_CONTACTS
             )
 
-        if (
-            Build.VERSION.SDK_INT >= 33
-        ) {
+        if (Build.VERSION.SDK_INT >= 33) {
 
             permissions.add(
                 Manifest.permission.POST_NOTIFICATIONS
@@ -190,15 +176,14 @@ class MainActivity : Activity() {
                         Intent(
                             Settings
                                 .ACTION_MANAGE_OVERLAY_PERMISSION,
+
                             Uri.parse(
                                 "package:$packageName"
                             )
                         )
                     )
 
-                } catch (
-                    e: Exception
-                ) {
+                } catch (e: Exception) {
 
                     startActivity(
                         Intent(
@@ -210,6 +195,142 @@ class MainActivity : Activity() {
             }
         )
 
-        root.addView
+        root.addView(
+            button(
+                "3. Turn ON JAR phone control"
+            ) {
 
-        
+                startActivity(
+                    Intent(
+                        Settings
+                            .ACTION_ACCESSIBILITY_SETTINGS
+                    )
+                )
+            }
+        )
+
+        root.addView(
+            button(
+                "4. Battery: set JAR to Unrestricted"
+            ) {
+
+                try {
+
+                    startActivity(
+                        Intent(
+                            Settings
+                                .ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
+                        )
+                    )
+
+                } catch (e: Exception) {
+
+                    startActivity(
+                        Intent(
+                            Settings.ACTION_SETTINGS
+                        )
+                    )
+                }
+            }
+        )
+
+        root.addView(
+            button(
+                "START JAR 3.0"
+            ) {
+
+                if (
+                    checkSelfPermission(
+                        Manifest.permission.RECORD_AUDIO
+                    ) !=
+                    PackageManager.PERMISSION_GRANTED
+                ) {
+
+                    Toast.makeText(
+                        this,
+                        "Allow microphone permission first.",
+                        Toast.LENGTH_LONG
+                    ).show()
+
+                    return@button
+                }
+
+                try {
+
+                    if (
+                        Build.VERSION.SDK_INT >= 26
+                    ) {
+
+                        startForegroundService(
+                            Intent(
+                                this,
+                                JarvisService::class.java
+                            )
+                        )
+
+                    } else {
+
+                        startService(
+                            Intent(
+                                this,
+                                JarvisService::class.java
+                            )
+                        )
+
+                    }
+
+                    Toast.makeText(
+                        this,
+                        "JAR 3.0 started.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                } catch (e: Exception) {
+
+                    Toast.makeText(
+                        this,
+                        "Could not start JAR.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        )
+
+        root.addView(
+            button(
+                "STOP JAR 3.0"
+            ) {
+
+                stopService(
+                    Intent(
+                        this,
+                        JarvisService::class.java
+                    )
+                )
+
+                Toast.makeText(
+                    this,
+                    "JAR 3.0 stopped.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        )
+
+        setContentView(
+            ScrollView(this).apply {
+
+                setBackgroundColor(
+                    Color.parseColor("#05070D")
+                )
+
+                addView(root)
+            }
+        )
+    }
+}
+
+This is the full file and ends with the required closing braces, so the "line 213" syntax error should be gone. Android's view containers support adding child views through "addView", which is what this layout uses.
+
+Save → Commit → DON'T run Actions yet.
+
+Tell me "MainActivity done".
