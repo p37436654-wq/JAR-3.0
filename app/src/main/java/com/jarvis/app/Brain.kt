@@ -31,6 +31,8 @@ object Brain {
             history.removeAt(0)
         }
 
+        var connection: HttpURLConnection? = null
+
         try {
 
             val body =
@@ -38,66 +40,100 @@ object Brain {
                     .put("prompt", user)
                     .put("info", info)
 
-            val connection =
+            connection =
                 URL(API_URL)
                     .openConnection()
                     as HttpURLConnection
 
-            connection.requestMethod =
-                "POST"
+            connection.requestMethod = "POST"
 
-            connection.connectTimeout =
-                15000
-
-            connection.readTimeout =
-                30000
+            connection.connectTimeout = 15000
+            connection.readTimeout = 30000
 
             connection.setRequestProperty(
                 "Content-Type",
+                "application/json; charset=UTF-8"
+            )
+
+            connection.setRequestProperty(
+                "Accept",
                 "application/json"
             )
 
             connection.doOutput = true
+            connection.doInput = true
 
-            connection.outputStream.use {
-                it.write(
+            connection.outputStream.use { output ->
+
+                output.write(
                     body.toString()
-                        .toByteArray(
-                            Charsets.UTF_8
-                        )
+                        .toByteArray(Charsets.UTF_8)
                 )
+
+                output.flush()
             }
 
             val responseCode =
                 connection.responseCode
 
             val stream =
-                if (
-                    responseCode in 200..299
-                ) {
+                if (responseCode in 200..299) {
                     connection.inputStream
                 } else {
                     connection.errorStream
                 }
 
             val response =
-                stream
-                    .bufferedReader()
-                    .use {
-                        it.readText()
-                    }
+                stream?.bufferedReader()?.use {
+                    it.readText()
+                } ?: ""
 
-            if (
-                responseCode !in 200..299
-            ) {
+            // IMPORTANT:
+            // Return the REAL server error.
+            if (responseCode !in 200..299) {
+
+                var serverMessage = response
+
+                try {
+
+                    val errorJson =
+                        JSONObject(response)
+
+                    serverMessage =
+                        errorJson.optString(
+                            "error",
+                            response
+                        )
+
+                } catch (_: Exception) {
+                }
+
                 throw Exception(
-                    "AI server error $responseCode"
+                    "SERVER $responseCode: $serverMessage"
                 )
             }
 
-            val content =
+            if (response.isBlank()) {
+                throw Exception(
+                    "Server returned an empty response"
+                )
+            }
+
+            val outer =
                 JSONObject(response)
-                    .getString("content")
+
+            val content =
+                outer.optString(
+                    "content",
+                    ""
+                )
+
+            if (content.isBlank()) {
+
+                throw Exception(
+                    "Server response has no content: $response"
+                )
+            }
 
             history.add(
                 JSONObject()
@@ -115,7 +151,7 @@ object Brain {
 
                 JSONObject(content)
 
-            } catch (e: Exception) {
+            } catch (_: Exception) {
 
                 JSONObject()
                     .put(
@@ -139,12 +175,20 @@ object Brain {
                 history.last()
                     .optString("role") == "user"
             ) {
+
                 history.removeAt(
                     history.size - 1
                 )
             }
 
-            throw e
+            throw Exception(
+                e.message
+                    ?: "Unknown AI connection error"
+            )
+
+        } finally {
+
+            connection?.disconnect()
         }
     }
-}                        
+}
