@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">JARVIS</string>
-    <string name="accessibility_description">JARVIS can perform user-requested navigation and interaction actions across Android apps.</string>
-</resources>
