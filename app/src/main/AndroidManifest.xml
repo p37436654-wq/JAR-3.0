@@ -1,8 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Internet / AI server -->
+    <uses-permission
+        android:name="android.permission.INTERNET" />
+
+    <!-- Microphone -->
+    <uses-permission
+        android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Foreground service -->
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- Microphone foreground service -->
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+
+    <!-- Phone actions -->
+    <uses-permission
+        android:name="android.permission.CALL_PHONE" />
+
+    <uses-permission
+        android:name="android.permission.SEND_SMS" />
+
+    <uses-permission
+        android:name="android.permission.READ_CONTACTS" />
+
+    <!-- Notifications -->
+    <uses-permission
+        android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -10,25 +38,41 @@
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
 
+        <!-- Main app -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
 
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+
+                <action
+                    android:name="android.intent.action.MAIN" />
+
+                <category
+                    android:name="android.intent.category.LAUNCHER" />
+
             </intent-filter>
 
         </activity>
 
+        <!-- JAR voice foreground service -->
+        <service
+            android:name=".JarvisService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
+
+        <!-- JAR phone-control accessibility service -->
         <service
             android:name=".ControlService"
-            android:exported="false"
+            android:exported="true"
             android:label="JARVIS Control"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
 
             <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
+
+                <action
+                    android:name="android.accessibilityservice.AccessibilityService" />
+
             </intent-filter>
 
             <meta-data
