@@ -28,6 +28,10 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class JarvisService : Service() {
 
+    // ============================================================
+    // CORE
+    // ============================================================
+
     private val handler =
         Handler(Looper.getMainLooper())
 
@@ -50,16 +54,28 @@ class JarvisService : Service() {
 
     private var awakeUntil = 0L
 
+    // ============================================================
+    // WAKE WORD
+    // ============================================================
+
     private val wakeWord =
         Regex(
             "\\b(jarvis|jarvish|jervis|jarvi)\\b",
             RegexOption.IGNORE_CASE
         )
 
+    // ============================================================
+    // LISTEN LOOP
+    // ============================================================
+
     private val listenAgain =
         Runnable {
             listen()
         }
+
+    // ============================================================
+    // SERVICE BINDING
+    // ============================================================
 
     override fun onBind(
         intent: Intent?
@@ -67,10 +83,15 @@ class JarvisService : Service() {
         return null
     }
 
+    // ============================================================
+    // SERVICE CREATED
+    // ============================================================
+
     override fun onCreate() {
 
         super.onCreate()
 
+        // Check microphone permission.
         if (
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
             checkSelfPermission(
@@ -81,12 +102,19 @@ class JarvisService : Service() {
             return
         }
 
+        // Start foreground service.
         createForegroundNotification()
 
+        // Keep JARVIS alive while possible.
         createWakeLock()
 
+        // Start TTS.
         createTextToSpeech()
     }
+
+    // ============================================================
+    // SERVICE START
+    // ============================================================
 
     override fun onStartCommand(
         intent: Intent?,
@@ -94,20 +122,21 @@ class JarvisService : Service() {
         startId: Int
     ): Int {
 
+        // Give TTS a moment to initialize.
         handler.postDelayed({
 
             if (ttsReady) {
                 listen()
             }
 
-        }, 1500)
+        }, 2000)
 
         return START_STICKY
     }
 
-    // ==================================================
+    // ============================================================
     // FOREGROUND NOTIFICATION
-    // ==================================================
+    // ============================================================
 
     private fun createForegroundNotification() {
 
@@ -116,7 +145,10 @@ class JarvisService : Service() {
                 NotificationManager::class.java
             )
 
-        if (Build.VERSION.SDK_INT >= 26) {
+        if (
+            Build.VERSION.SDK_INT >=
+            Build.VERSION_CODES.O
+        ) {
 
             val channel =
                 NotificationChannel(
@@ -129,11 +161,16 @@ class JarvisService : Service() {
                 "JAR 3.0 voice assistant"
 
             notificationManager
-                .createNotificationChannel(channel)
+                .createNotificationChannel(
+                    channel
+                )
         }
 
         val notification =
-            if (Build.VERSION.SDK_INT >= 26) {
+            if (
+                Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.O
+            ) {
 
                 Notification.Builder(
                     this,
@@ -153,7 +190,9 @@ class JarvisService : Service() {
 
             } else {
 
-                Notification.Builder(this)
+                Notification.Builder(
+                    this
+                )
                     .setContentTitle(
                         "JAR 3.0 is active"
                     )
@@ -167,12 +206,16 @@ class JarvisService : Service() {
                     .build()
             }
 
-        if (Build.VERSION.SDK_INT >= 29) {
+        if (
+            Build.VERSION.SDK_INT >=
+            Build.VERSION_CODES.Q
+        ) {
 
             startForeground(
                 1,
                 notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+                ServiceInfo
+                    .FOREGROUND_SERVICE_TYPE_MICROPHONE
             )
 
         } else {
@@ -184,9 +227,9 @@ class JarvisService : Service() {
         }
     }
 
-    // ==================================================
+    // ============================================================
     // WAKE LOCK
-    // ==================================================
+    // ============================================================
 
     private fun createWakeLock() {
 
@@ -206,13 +249,14 @@ class JarvisService : Service() {
             wakeLock?.acquire()
 
         } catch (_: Exception) {
+
             wakeLock = null
         }
     }
 
-    // ==================================================
+    // ============================================================
     // TEXT TO SPEECH
-    // ==================================================
+    // ============================================================
 
     private fun createTextToSpeech() {
 
@@ -224,98 +268,105 @@ class JarvisService : Service() {
                 handler.post {
 
                     if (
-                        status ==
+                        status !=
                         TextToSpeech.SUCCESS
                     ) {
-
-                        val languageResult =
-                            tts?.setLanguage(
-                                Locale("en", "IN")
-                            )
-
-                        if (
-                            languageResult ==
-                            TextToSpeech.LANG_MISSING_DATA ||
-                            languageResult ==
-                            TextToSpeech.LANG_NOT_SUPPORTED
-                        ) {
-
-                            val fallbackResult =
-                                tts?.setLanguage(
-                                    Locale.US
-                                )
-
-                            if (
-                                fallbackResult ==
-                                TextToSpeech.LANG_MISSING_DATA ||
-                                fallbackResult ==
-                                TextToSpeech.LANG_NOT_SUPPORTED
-                            ) {
-
-                                ttsReady = false
-
-                                scheduleListening(
-                                    2000
-                                )
-
-                                return@post
-                            }
-                        }
-
-                        tts?.setPitch(
-                            0.75f
-                        )
-
-                        tts?.setSpeechRate(
-                            1.05f
-                        )
-
-                        tts?.setOnUtteranceProgressListener(
-                            object :
-                                UtteranceProgressListener() {
-
-                                override fun onStart(
-                                    utteranceId: String?
-                                ) {
-                                }
-
-                                override fun onDone(
-                                    utteranceId: String?
-                                ) {
-
-                                    handler.post {
-                                        speechFinished()
-                                    }
-                                }
-
-                                override fun onError(
-                                    utteranceId: String?
-                                ) {
-
-                                    handler.post {
-                                        speechFinished()
-                                    }
-                                }
-                            }
-                        )
-
-                        ttsReady = true
-
-                        say(
-                            "JAR 3.0 online. Ready, boss."
-                        )
-
-                    } else {
 
                         ttsReady = false
 
                         scheduleListening(
                             2000
                         )
+
+                        return@post
                     }
+
+                    var languageResult =
+                        tts?.setLanguage(
+                            Locale(
+                                "en",
+                                "IN"
+                            )
+                        )
+
+                    if (
+                        languageResult ==
+                        TextToSpeech.LANG_MISSING_DATA ||
+                        languageResult ==
+                        TextToSpeech.LANG_NOT_SUPPORTED
+                    ) {
+
+                        languageResult =
+                            tts?.setLanguage(
+                                Locale.US
+                            )
+                    }
+
+                    if (
+                        languageResult ==
+                        TextToSpeech.LANG_MISSING_DATA ||
+                        languageResult ==
+                        TextToSpeech.LANG_NOT_SUPPORTED
+                    ) {
+
+                        ttsReady = false
+
+                        scheduleListening(
+                            2000
+                        )
+
+                        return@post
+                    }
+
+                    tts?.setPitch(
+                        0.75f
+                    )
+
+                    tts?.setSpeechRate(
+                        1.05f
+                    )
+
+                    tts?.setOnUtteranceProgressListener(
+                        object :
+                            UtteranceProgressListener() {
+
+                            override fun onStart(
+                                utteranceId: String?
+                            ) {
+                            }
+
+                            override fun onDone(
+                                utteranceId: String?
+                            ) {
+
+                                handler.post {
+                                    speechFinished()
+                                }
+                            }
+
+                            override fun onError(
+                                utteranceId: String?
+                            ) {
+
+                                handler.post {
+                                    speechFinished()
+                                }
+                            }
+                        }
+                    )
+
+                    ttsReady = true
+
+                    say(
+                        "JAR 3.0 online. Ready, boss."
+                    )
                 }
             }
     }
+
+    // ============================================================
+    // SPEECH FINISHED
+    // ============================================================
 
     private fun speechFinished() {
 
@@ -326,11 +377,18 @@ class JarvisService : Service() {
 
             pendingSpeech.set(0)
 
-            scheduleListening(
-                500
-            )
+            if (!busy) {
+
+                scheduleListening(
+                    500
+                )
+            }
         }
     }
+
+    // ============================================================
+    // SPEAK
+    // ============================================================
 
     private fun say(
         text: String
@@ -375,9 +433,9 @@ class JarvisService : Service() {
         }
     }
 
-    // ==================================================
-    // LISTENING
-    // ==================================================
+    // ============================================================
+    // LISTENING SCHEDULER
+    // ============================================================
 
     private fun scheduleListening(
         delay: Long
@@ -392,6 +450,10 @@ class JarvisService : Service() {
             delay
         )
     }
+
+    // ============================================================
+    // START LISTENING
+    // ============================================================
 
     private fun listen() {
 
@@ -417,7 +479,9 @@ class JarvisService : Service() {
 
         if (
             !SpeechRecognizer
-                .isRecognitionAvailable(this)
+                .isRecognitionAvailable(
+                    this
+                )
         ) {
 
             scheduleListening(
@@ -502,9 +566,9 @@ class JarvisService : Service() {
         }
     }
 
-    // ==================================================
-    // SPEECH RECOGNITION
-    // ==================================================
+    // ============================================================
+    // SPEECH RECOGNITION LISTENER
+    // ============================================================
 
     private val recognitionListener =
         object : RecognitionListener {
@@ -631,9 +695,9 @@ class JarvisService : Service() {
             }
         }
 
-    // ==================================================
-    // COMMAND HANDLING
-    // ==================================================
+    // ============================================================
+    // HANDLE SPEECH
+    // ============================================================
 
     private fun handleSpeech(
         text: String
@@ -698,13 +762,17 @@ class JarvisService : Service() {
         }
     }
 
-    // ==================================================
-    // AI PROCESSING
-    // ==================================================
+    // ============================================================
+    // AI COMMAND PROCESSING
+    // ============================================================
 
     private fun processCommand(
         command: String
     ) {
+
+        if (busy) {
+            return
+        }
 
         busy = true
 
@@ -749,68 +817,4 @@ class JarvisService : Service() {
 
                     if (
                         actions != null
-                    ) {
-
-                        for (
-                            index in
-                            0 until
-                            actions.length()
-                        ) {
-
-                            val action =
-                                actions
-                                    .getJSONObject(
-                                        index
-                                    )
-
-                            val result =
-                                Actions.run(
-                                    this,
-                                    action
-                                )
-
-                            if (
-                                result != "ok"
-                            ) {
-
-                                failures
-                                    .append(
-                                        result
-                                    )
-                                    .append(
-                                        "; "
-                                    )
-                            }
-
-                            Thread.sleep(
-                                800
-                            )
-                        }
-                    }
-
-                    if (
-                        !response.optBoolean(
-                            "more"
-                        )
-                    ) {
-
-                        break
-                    }
-
-                    Thread.sleep(
-                        1200
-                    )
-
-                    input =
-                        "RESULT: " +
-                            failures +
-                            "\nSCREEN: " +
-                            (
-                                ControlService
-                                    .inst
-                                    ?.screenText()
-                                    ?: "(phone control is OFF)"
-                            )
-                }
-
-            } catch (_: Exception)
+         
