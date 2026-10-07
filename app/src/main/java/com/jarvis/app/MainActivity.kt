@@ -20,86 +20,106 @@ import android.widget.Toast
 
 class MainActivity : Activity() {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(
+        savedInstanceState: Bundle?
+    ) {
         super.onCreate(savedInstanceState)
 
-        val d = resources.displayMetrics.density
+        val d =
+            resources.displayMetrics.density
 
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
+        val root =
+            LinearLayout(this).apply {
 
-            setPadding(
-                (20 * d).toInt(),
-                (40 * d).toInt(),
-                (20 * d).toInt(),
-                (30 * d).toInt()
-            )
+                orientation =
+                    LinearLayout.VERTICAL
 
-            setBackgroundColor(
-                Color.parseColor("#05070D")
-            )
-        }
+                gravity =
+                    Gravity.CENTER_HORIZONTAL
 
-        val orb = View(this).apply {
+                setPadding(
+                    (20 * d).toInt(),
+                    (40 * d).toInt(),
+                    (20 * d).toInt(),
+                    (30 * d).toInt()
+                )
 
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(
-                    Color.parseColor("#00E5FF")
+                setBackgroundColor(
+                    Color.parseColor("#05070D")
                 )
             }
 
-            layoutParams =
-                LinearLayout.LayoutParams(
-                    (140 * d).toInt(),
-                    (140 * d).toInt()
-                ).apply {
-                    bottomMargin =
-                        (25 * d).toInt()
-                }
-        }
+        val orb =
+            View(this).apply {
 
-        val title = TextView(this).apply {
+                background =
+                    GradientDrawable().apply {
 
-            text = "JAR 3.0"
+                        shape =
+                            GradientDrawable.OVAL
 
-            textSize = 32f
+                        setColor(
+                            Color.parseColor(
+                                "#00E5FF"
+                            )
+                        )
+                    }
 
-            setTextColor(
-                Color.WHITE
-            )
+                layoutParams =
+                    LinearLayout.LayoutParams(
+                        (140 * d).toInt(),
+                        (140 * d).toInt()
+                    ).apply {
 
-            gravity = Gravity.CENTER
+                        bottomMargin =
+                            (25 * d).toInt()
+                    }
+            }
 
-            setPadding(
-                0,
-                0,
-                0,
-                (8 * d).toInt()
-            )
-        }
+        val title =
+            TextView(this).apply {
 
-        val subtitle = TextView(this).apply {
+                text = "JAR 3.0"
 
-            text =
-                "Your personal voice assistant"
+                textSize = 32f
 
-            textSize = 16f
+                setTextColor(
+                    Color.WHITE
+                )
 
-            setTextColor(
-                Color.LTGRAY
-            )
+                gravity =
+                    Gravity.CENTER
 
-            gravity = Gravity.CENTER
+                setPadding(
+                    0,
+                    0,
+                    0,
+                    (8 * d).toInt()
+                )
+            }
 
-            setPadding(
-                0,
-                0,
-                0,
-                (25 * d).toInt()
-            )
-        }
+        val subtitle =
+            TextView(this).apply {
+
+                text =
+                    "Your personal voice assistant"
+
+                textSize = 16f
+
+                setTextColor(
+                    Color.LTGRAY
+                )
+
+                gravity =
+                    Gravity.CENTER
+
+                setPadding(
+                    0,
+                    0,
+                    0,
+                    (25 * d).toInt()
+                )
+            }
 
         fun button(
             label: String,
@@ -130,27 +150,22 @@ class MainActivity : Activity() {
 
         val permissions =
             mutableListOf(
-
                 Manifest.permission.RECORD_AUDIO,
-
                 Manifest.permission.CALL_PHONE,
-
                 Manifest.permission.SEND_SMS,
-
                 Manifest.permission.READ_CONTACTS
             )
 
-        if (Build.VERSION.SDK_INT >= 33) {
-
+        if (
+            Build.VERSION.SDK_INT >= 33
+        ) {
             permissions.add(
                 Manifest.permission.POST_NOTIFICATIONS
             )
         }
 
         root.addView(orb)
-
         root.addView(title)
-
         root.addView(subtitle)
 
         root.addView(
@@ -176,7 +191,6 @@ class MainActivity : Activity() {
                         Intent(
                             Settings
                                 .ACTION_MANAGE_OVERLAY_PERMISSION,
-
                             Uri.parse(
                                 "package:$packageName"
                             )
@@ -257,26 +271,25 @@ class MainActivity : Activity() {
 
                 try {
 
+                    val intent =
+                        Intent(
+                            this,
+                            JarvisService::class.java
+                        )
+
                     if (
                         Build.VERSION.SDK_INT >= 26
                     ) {
 
                         startForegroundService(
-                            Intent(
-                                this,
-                                JarvisService::class.java
-                            )
+                            intent
                         )
 
                     } else {
 
                         startService(
-                            Intent(
-                                this,
-                                JarvisService::class.java
-                            )
+                            intent
                         )
-
                     }
 
                     Toast.makeText(
@@ -316,7 +329,7 @@ class MainActivity : Activity() {
             }
         )
 
-        setContentView(
+        val scroll =
             ScrollView(this).apply {
 
                 setBackgroundColor(
@@ -325,12 +338,7 @@ class MainActivity : Activity() {
 
                 addView(root)
             }
-        )
+
+        setContentView(scroll)
     }
 }
-
-This is the full file and ends with the required closing braces, so the "line 213" syntax error should be gone. Android's view containers support adding child views through "addView", which is what this layout uses.
-
-Save → Commit → DON'T run Actions yet.
-
-Tell me "MainActivity done".
