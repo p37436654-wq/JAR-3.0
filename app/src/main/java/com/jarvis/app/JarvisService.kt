@@ -36,20 +36,12 @@ class JarvisService : Service() {
 
     private var ttsReady = false
     private var busy = false
-    private var listening = false
     private var awakeUntil = 0L
 
     private val wakeWord =
-        Regex(
-            "\\b(jarvis|jarvish|jervis|jarvi)\\b",
-            RegexOption.IGNORE_CASE
-        )
+        Regex("\\b(jarvis|jarvish|jervis|jarvi)\\b", RegexOption.IGNORE_CASE)
 
     override fun onBind(intent: Intent?): IBinder? = null
-
-    // =========================================================
-    // CREATE
-    // =========================================================
 
     override fun onCreate() {
         super.onCreate()
@@ -73,21 +65,14 @@ class JarvisService : Service() {
         startId: Int
     ): Int {
 
-        handler.postDelayed(
-            {
-                if (ttsReady && !busy) {
-                    listen()
-                }
-            },
-            1500
-        )
+        handler.postDelayed({
+            if (ttsReady && !busy) {
+                listen()
+            }
+        }, 2000)
 
         return START_STICKY
     }
-
-    // =========================================================
-    // FOREGROUND SERVICE
-    // =========================================================
 
     private fun startForegroundServiceNotification() {
 
@@ -139,16 +124,9 @@ class JarvisService : Service() {
 
         } else {
 
-            startForeground(
-                1,
-                notification
-            )
+            startForeground(1, notification)
         }
     }
-
-    // =========================================================
-    // WAKE LOCK
-    // =========================================================
 
     private fun createWakeLock() {
 
@@ -170,100 +148,79 @@ class JarvisService : Service() {
         }
     }
 
-    // =========================================================
-    // TEXT TO SPEECH
-    // =========================================================
-
     private fun createTts() {
 
-        tts =
-            TextToSpeech(this) { status ->
+        tts = TextToSpeech(this) { status ->
 
-                handler.post {
+            handler.post {
 
-                    if (
-                        status !=
-                        TextToSpeech.SUCCESS
-                    ) {
-                        return@post
-                    }
+                if (status != TextToSpeech.SUCCESS) {
+                    return@post
+                }
 
-                    val result =
-                        tts?.setLanguage(
-                            Locale("en", "IN")
-                        )
+                val result =
+                    tts?.setLanguage(
+                        Locale("en", "IN")
+                    )
 
-                    if (
-                        result ==
-                        TextToSpeech.LANG_MISSING_DATA ||
-                        result ==
-                        TextToSpeech.LANG_NOT_SUPPORTED
-                    ) {
-                        tts?.setLanguage(
-                            Locale.US
-                        )
-                    }
+                if (
+                    result == TextToSpeech.LANG_MISSING_DATA ||
+                    result == TextToSpeech.LANG_NOT_SUPPORTED
+                ) {
+                    tts?.setLanguage(Locale.US)
+                }
 
-                    tts?.setPitch(0.75f)
-                    tts?.setSpeechRate(1.05f)
+                tts?.setPitch(0.75f)
+                tts?.setSpeechRate(1.05f)
 
-                    tts?.setOnUtteranceProgressListener(
-                        object :
-                            UtteranceProgressListener() {
+                tts?.setOnUtteranceProgressListener(
+                    object : UtteranceProgressListener() {
 
-                            override fun onStart(
-                                utteranceId: String?
-                            ) {
-                            }
+                        override fun onStart(
+                            utteranceId: String?
+                        ) {
+                        }
 
-                            override fun onDone(
-                                utteranceId: String?
-                            ) {
-
-                                handler.post {
-
-                                    if (!busy) {
-                                        listenLater(500)
-                                    }
-                                }
-                            }
-
-                            override fun onError(
-                                utteranceId: String?
-                            ) {
-
-                                handler.post {
-
-                                    if (!busy) {
-                                        listenLater(500)
-                                    }
+                        override fun onDone(
+                            utteranceId: String?
+                        ) {
+                            handler.post {
+                                if (!busy) {
+                                    listenLater(500)
                                 }
                             }
                         }
-                    )
 
-                    ttsReady = true
+                        override fun onError(
+                            utteranceId: String?
+                        ) {
+                            handler.post {
+                                if (!busy) {
+                                    listenLater(500)
+                                }
+                            }
+                        }
+                    }
+                )
 
-                    speak(
-                        "JAR 3.0 online. Ready, boss."
-                    )
-                }
+                ttsReady = true
+
+                speak(
+                    "JAR 3.0 online. Ready, boss."
+                )
             }
+        }
     }
 
     private fun speak(text: String) {
 
-        if (
-            !ttsReady ||
-            text.isBlank()
-        ) {
+        if (!ttsReady || text.isBlank()) {
             return
         }
 
         handler.post {
 
-            // Stop recognition while JARVIS speaks.
-            stopListeningOnly()
+            recognizer?.cancel()
 
             tts?.speak(
                 text,
@@ -274,47 +231,23 @@ class JarvisService : Service() {
         }
     }
 
-    // =========================================================
-    // LISTENING
-    // =========================================================
-
-    private fun createRecognizer() {
-
-        if (recognizer != null) {
-            return
-        }
-
-        recognizer =
-            SpeechRecognizer
-                .createSpeechRecognizer(this)
-
-        recognizer?.setRecognitionListener(
-            listener
-        )
-    }
-
     private fun listenLater(delay: Long) {
 
         handler.removeCallbacksAndMessages(
-            "JARVIS_LISTEN"
+            "LISTEN"
         )
 
-        handler.postAtTime(
+        handler.postDelayed(
             {
                 listen()
             },
-            "JARVIS_LISTEN",
-            System.currentTimeMillis() + delay
+            delay
         )
     }
 
     private fun listen() {
 
-        if (
-            busy ||
-            !ttsReady ||
-            listening
-        ) {
+        if (busy || !ttsReady) {
             return
         }
 
@@ -328,16 +261,25 @@ class JarvisService : Service() {
         }
 
         if (
-            !SpeechRecognizer
-                .isRecognitionAvailable(this)
+            !SpeechRecognizer.isRecognitionAvailable(this)
         ) {
             listenLater(3000)
             return
         }
 
-        createRecognizer()
+        if (recognizer == null) {
+
+            recognizer =
+                SpeechRecognizer.createSpeechRecognizer(this)
+
+            recognizer?.setRecognitionListener(
+                listener
+            )
+        }
 
         try {
+
+            recognizer?.cancel()
 
             val intent =
                 Intent(
@@ -363,50 +305,15 @@ class JarvisService : Service() {
                         RecognizerIntent.EXTRA_PARTIAL_RESULTS,
                         false
                     )
-
-                    // Keep the recognition session
-                    // from ending too aggressively.
-                    putExtra(
-                        RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,
-                        1500
-                    )
-
-                    putExtra(
-                        RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,
-                        1000
-                    )
                 }
 
-            listening = true
-
-            recognizer?.startListening(
-                intent
-            )
+            recognizer?.startListening(intent)
 
         } catch (_: Exception) {
 
-            listening = false
             listenLater(1500)
         }
     }
-
-    private fun stopListeningOnly() {
-
-        if (!listening) {
-            return
-        }
-
-        try {
-            recognizer?.stopListening()
-        } catch (_: Exception) {
-        }
-
-        listening = false
-    }
-
-    // =========================================================
-    // SPEECH LISTENER
-    // =========================================================
 
     private val listener =
         object : RecognitionListener {
@@ -414,11 +321,9 @@ class JarvisService : Service() {
             override fun onReadyForSpeech(
                 params: Bundle?
             ) {
-                listening = true
             }
 
             override fun onBeginningOfSpeech() {
-                listening = true
             }
 
             override fun onRmsChanged(
@@ -432,7 +337,6 @@ class JarvisService : Service() {
             }
 
             override fun onEndOfSpeech() {
-                listening = false
             }
 
             override fun onPartialResults(
@@ -450,8 +354,6 @@ class JarvisService : Service() {
                 results: Bundle?
             ) {
 
-                listening = false
-
                 val text =
                     results
                         ?.getStringArrayList(
@@ -467,7 +369,7 @@ class JarvisService : Service() {
 
                 } else {
 
-                    listenLater(250)
+                    listenLater(300)
                 }
             }
 
@@ -475,44 +377,28 @@ class JarvisService : Service() {
                 error: Int
             ) {
 
-                listening = false
-
                 if (
                     error ==
-                    SpeechRecognizer
-                        .ERROR_INSUFFICIENT_PERMISSIONS
+                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS
                 ) {
                     stopSelf()
                     return
                 }
 
-                // SpeechRecognizer naturally ends after
-                // silence/errors. Restart quietly.
-                listenLater(500)
+                listenLater(700)
             }
         }
 
-    // =========================================================
-    // WAKE WORD
-    // =========================================================
-
-    private fun handleSpeech(
-        text: String
-    ) {
+    private fun handleSpeech(text: String) {
 
         val now =
             System.currentTimeMillis()
 
-        if (
-            wakeWord.containsMatchIn(text)
-        ) {
+        if (wakeWord.containsMatchIn(text)) {
 
             val command =
                 text
-                    .replaceFirst(
-                        wakeWord,
-                        ""
-                    )
+                    .replaceFirst(wakeWord, "")
                     .trim(
                         ' ',
                         ',',
@@ -523,21 +409,13 @@ class JarvisService : Service() {
 
             if (command.length < 2) {
 
-                // Stay awake for 10 seconds.
-                awakeUntil =
-                    now + 10000
+                awakeUntil = now + 10000
 
-                speak(
-                    "Yes boss?"
-                )
+                speak("Yes boss?")
 
             } else {
 
-                // Direct command:
-                // "Jarvis open WhatsApp"
-                processCommand(
-                    command
-                )
+                processCommand(command)
             }
 
             return
@@ -548,8 +426,6 @@ class JarvisService : Service() {
             text.isNotBlank()
         ) {
 
-            // Follow-up command after:
-            // "Jarvis"
             processCommand(text)
 
         } else {
@@ -557,10 +433,6 @@ class JarvisService : Service() {
             listenLater(200)
         }
     }
-
-    // =========================================================
-    // AI COMMAND
-    // =========================================================
 
     private fun processCommand(
         command: String
@@ -571,7 +443,6 @@ class JarvisService : Service() {
         }
 
         busy = true
-        awakeUntil = 0L
 
         executor.execute {
 
@@ -588,13 +459,9 @@ class JarvisService : Service() {
                         )
 
                     val speech =
-                        response.optString(
-                            "say"
-                        )
+                        response.optString("say")
 
-                    if (
-                        speech.isNotBlank()
-                    ) {
+                    if (speech.isNotBlank()) {
                         speak(speech)
                     }
 
@@ -602,9 +469,7 @@ class JarvisService : Service() {
                         StringBuilder()
 
                     val actions =
-                        response.optJSONArray(
-                            "actions"
-                        )
+                        response.optJSONArray("actions")
 
                     if (actions != null) {
 
@@ -623,9 +488,7 @@ class JarvisService : Service() {
                                         action
                                     )
 
-                                if (
-                                    result != "ok"
-                                ) {
+                                if (result != "ok") {
 
                                     failures
                                         .append(result)
@@ -653,7 +516,7 @@ class JarvisService : Service() {
                         return@repeat
                     }
 
-                    Thread.sleep(800)
+                    Thread.sleep(1000)
 
                     val screen =
                         try {
@@ -677,8 +540,7 @@ class JarvisService : Service() {
             } catch (e: Exception) {
 
                 val error =
-                    e.message
-                        ?: "Unknown error"
+                    e.message ?: "Unknown error"
 
                 speak(
                     "Error. " +
@@ -699,10 +561,6 @@ class JarvisService : Service() {
         }
     }
 
-    // =========================================================
-    // PHONE INFORMATION
-    // =========================================================
-
     private fun phoneInfo(): String {
 
         val time =
@@ -711,9 +569,7 @@ class JarvisService : Service() {
                 SimpleDateFormat(
                     "hh:mm a",
                     Locale.getDefault()
-                ).format(
-                    Date()
-                )
+                ).format(Date())
 
             } catch (_: Exception) {
 
@@ -738,9 +594,7 @@ class JarvisService : Service() {
             }
 
         val control =
-            if (
-                ControlService.inst != null
-            ) {
+            if (ControlService.inst != null) {
                 "ON"
             } else {
                 "OFF"
@@ -749,10 +603,7 @@ class JarvisService : Service() {
         return """
             Time: $time
             Battery: ${
-                if (battery >= 0)
-                    "$battery%"
-                else
-                    "unknown"
+                if (battery >= 0) "$battery%" else "unknown"
             }
             Phone control: $control
             Android: ${Build.VERSION.RELEASE}
@@ -760,15 +611,9 @@ class JarvisService : Service() {
         """.trimIndent()
     }
 
-    // =========================================================
-    // CLEANUP
-    // =========================================================
-
     override fun onDestroy() {
 
-        handler.removeCallbacksAndMessages(
-            null
-        )
+        handler.removeCallbacksAndMessages(null)
 
         try {
             recognizer?.cancel()
@@ -777,7 +622,6 @@ class JarvisService : Service() {
         }
 
         recognizer = null
-        listening = false
 
         try {
             tts?.stop()
@@ -786,13 +630,10 @@ class JarvisService : Service() {
         }
 
         tts = null
-        ttsReady = false
 
         try {
 
-            if (
-                wakeLock?.isHeld == true
-            ) {
+            if (wakeLock?.isHeld == true) {
                 wakeLock?.release()
             }
 
