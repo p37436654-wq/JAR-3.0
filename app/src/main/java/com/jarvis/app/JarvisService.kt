@@ -1,3 +1,4 @@
+
 package com.jarvis.app
 
 import android.Manifest
@@ -190,8 +191,7 @@ class JarvisService : Service() {
                 handler.post {
 
                     if (
-                        status !=
-                        TextToSpeech.SUCCESS
+                        status != TextToSpeech.SUCCESS
                     ) {
                         return@post
                     }
@@ -207,7 +207,6 @@ class JarvisService : Service() {
                         result ==
                         TextToSpeech.LANG_NOT_SUPPORTED
                     ) {
-
                         tts?.setLanguage(
                             Locale.US
                         )
@@ -217,8 +216,7 @@ class JarvisService : Service() {
                     tts?.setSpeechRate(1.05f)
 
                     tts?.setOnUtteranceProgressListener(
-                        object :
-                            UtteranceProgressListener() {
+                        object : UtteranceProgressListener() {
 
                             override fun onStart(
                                 utteranceId: String?
@@ -235,9 +233,7 @@ class JarvisService : Service() {
                                         !busy &&
                                         !destroyed
                                     ) {
-                                        scheduleListen(
-                                            700
-                                        )
+                                        scheduleListen(700)
                                     }
                                 }
                             }
@@ -252,9 +248,7 @@ class JarvisService : Service() {
                                         !busy &&
                                         !destroyed
                                     ) {
-                                        scheduleListen(
-                                            1000
-                                        )
+                                        scheduleListen(1000)
                                     }
                                 }
                             }
@@ -298,7 +292,7 @@ class JarvisService : Service() {
                 text,
                 TextToSpeech.QUEUE_FLUSH,
                 null,
-                "jar_${System.nanoTime()}"
+                "jar_" + System.nanoTime()
             )
         }
     }
@@ -366,8 +360,9 @@ class JarvisService : Service() {
         if (recognizer == null) {
 
             recognizer =
-                SpeechRecognizer
-                    .createSpeechRecognizer(this)
+                SpeechRecognizer.createSpeechRecognizer(
+                    this
+                )
 
             recognizer?.setRecognitionListener(
                 listener
@@ -417,7 +412,7 @@ class JarvisService : Service() {
     }
 
     // =========================================================
-    // SPEECH RECOGNITION LISTENER
+    // SPEECH RECOGNITION
     // =========================================================
 
     private val listener =
@@ -426,12 +421,10 @@ class JarvisService : Service() {
             override fun onReadyForSpeech(
                 params: Bundle?
             ) {
-
                 listening = true
             }
 
             override fun onBeginningOfSpeech() {
-
                 listening = true
             }
 
@@ -446,7 +439,6 @@ class JarvisService : Service() {
             }
 
             override fun onEndOfSpeech() {
-                // Wait for onResults or onError.
             }
 
             override fun onPartialResults(
@@ -469,8 +461,7 @@ class JarvisService : Service() {
                 val text =
                     results
                         ?.getStringArrayList(
-                            SpeechRecognizer
-                                .RESULTS_RECOGNITION
+                            SpeechRecognizer.RESULTS_RECOGNITION
                         )
                         ?.firstOrNull()
                         ?.trim()
@@ -498,10 +489,8 @@ class JarvisService : Service() {
 
                 if (
                     error ==
-                    SpeechRecognizer
-                        .ERROR_INSUFFICIENT_PERMISSIONS
+                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS
                 ) {
-
                     stopSelf()
                     return
                 }
@@ -582,9 +571,7 @@ class JarvisService : Service() {
             text.isNotBlank()
         ) {
 
-            processCommand(
-                text
-            )
+            processCommand(text)
 
         } else {
 
@@ -624,26 +611,17 @@ class JarvisService : Service() {
                         )
 
                     val speech =
-                        response.optString(
-                            "say"
-                        )
+                        response.optString("say")
 
-                    if (
-                        speech.isNotBlank()
-                    ) {
-
-                        speak(
-                            speech
-                        )
+                    if (speech.isNotBlank()) {
+                        speak(speech)
                     }
 
                     val failures =
                         StringBuilder()
 
                     val actions =
-                        response.optJSONArray(
-                            "actions"
-                        )
+                        response.optJSONArray("actions")
 
                     if (actions != null) {
 
@@ -654,9 +632,7 @@ class JarvisService : Service() {
                             try {
 
                                 val action =
-                                    actions.getJSONObject(
-                                        i
-                                    )
+                                    actions.getJSONObject(i)
 
                                 val result =
                                     Actions.run(
@@ -664,17 +640,11 @@ class JarvisService : Service() {
                                         action
                                     )
 
-                                if (
-                                    result != "ok"
-                                ) {
+                                if (result != "ok") {
 
                                     failures
-                                        .append(
-                                            result
-                                        )
-                                        .append(
-                                            "; "
-                                        )
+                                        .append(result)
+                                        .append("; ")
                                 }
 
                             } catch (e: Exception) {
@@ -684,9 +654,7 @@ class JarvisService : Service() {
                                         e.message
                                             ?: "Action failed"
                                     )
-                                    .append(
-                                        "; "
-                                    )
+                                    .append("; ")
                             }
                         }
                     }
@@ -697,13 +665,10 @@ class JarvisService : Service() {
                             false
                         )
                     ) {
-
                         return@repeat
                     }
 
-                    Thread.sleep(
-                        1000
-                    )
+                    Thread.sleep(1000)
 
                     val screen =
                         try {
@@ -727,8 +692,7 @@ class JarvisService : Service() {
             } catch (e: Exception) {
 
                 val error =
-                    e.message
-                        ?: "Unknown error"
+                    e.message ?: "Unknown error"
 
                 speak(
                     "Error. " +
@@ -742,10 +706,7 @@ class JarvisService : Service() {
                 handler.post {
 
                     if (!destroyed) {
-
-                        scheduleListen(
-                            1500
-                        )
+                        scheduleListen(1500)
                     }
                 }
             }
@@ -764,9 +725,7 @@ class JarvisService : Service() {
                 SimpleDateFormat(
                     "hh:mm a",
                     Locale.getDefault()
-                ).format(
-                    Date()
-                )
+                ).format(Date())
 
             } catch (_: Exception) {
 
@@ -782,8 +741,7 @@ class JarvisService : Service() {
                     ) as BatteryManager
 
                 manager.getIntProperty(
-                    BatteryManager
-                        .BATTERY_PROPERTY_CAPACITY
+                    BatteryManager.BATTERY_PROPERTY_CAPACITY
                 )
 
             } catch (_: Exception) {
@@ -792,16 +750,68 @@ class JarvisService : Service() {
             }
 
         val control =
-            if (
-                ControlService.inst != null
-            ) {
+            if (ControlService.inst != null) {
                 "ON"
             } else {
                 "OFF"
             }
 
-        return """
-            Time: $time
-            Battery: ${
-                if (battery >= 0) {
-                    "$b
+        val batteryText =
+            if (battery >= 0) {
+                battery.toString() + "%"
+            } else {
+                "unknown"
+            }
+
+        return StringBuilder()
+            .append("Time: ")
+            .append(time)
+            .append("\n")
+            .append("Battery: ")
+            .append(batteryText)
+            .append("\n")
+            .append("Phone control: ")
+            .append(control)
+            .append("\n")
+            .append("Android: ")
+            .append(Build.VERSION.RELEASE)
+            .append("\n")
+            .append("Device: ")
+            .append(Build.MODEL)
+            .toString()
+    }
+
+    // =========================================================
+    // CLEANUP
+    // =========================================================
+
+    override fun onDestroy() {
+
+        destroyed = true
+
+        handler.removeCallbacks(
+            listenRunnable
+        )
+
+        try {
+
+            if (listening) {
+                recognizer?.stopListening()
+            }
+
+        } catch (_: Exception) {
+        }
+
+        listening = false
+
+        try {
+            recognizer?.cancel()
+            recognizer?.destroy()
+        } catch (_: Exception) {
+        }
+
+        recognizer = null
+
+        try {
+            tts?.stop()
+            t
