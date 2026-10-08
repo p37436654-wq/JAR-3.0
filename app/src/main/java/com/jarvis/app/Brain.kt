@@ -7,38 +7,100 @@ import java.net.URL
 
 object Brain {
 
-    const val MODEL =
-        "llama-3.3-70b-versatile"
-
     private const val API_URL =
-        "https://jar-30-yqa4.vercel.app/api/chat"
+        "https://api.groq.com/openai/v1/chat/completions"
 
-    private val history =
-        ArrayList<JSONObject>()
+    private const val MODEL =
+        "openai/gpt-oss-120b"
 
     fun ask(
         user: String,
         info: String
     ): JSONObject {
 
-        history.add(
-            JSONObject()
-                .put("role", "user")
-                .put("content", user)
-        )
+        val apiKey =
+            BuildConfig.GROQ_API_KEY
 
-        while (history.size > 14) {
-            history.removeAt(0)
+        if (apiKey.isBlank()) {
+            throw Exception(
+                "Groq API key is missing"
+            )
         }
+
+        val system =
+            """
+            You are JARVIS, a voice assistant inside an Android phone.
+
+            Return ONLY one JSON object:
+
+            {
+              "say": "...",
+              "actions": [],
+              "more": false
+            }
+
+            "say" is what JARVIS speaks aloud.
+            Keep it short and natural.
+
+            Available actions:
+
+            open_app{name}
+            call{to}
+            sms{to,text}
+            alarm{hour,minute,label}
+            timer{seconds}
+            flashlight{on:true/false}
+            volume{level:0-100}
+            url{url}
+            search{query}
+            navigate{place}
+            settings{page}
+            system{what}
+            click{text}
+            type{text}
+            enter{}
+            scroll{dir}
+            wait{ms}
+
+            Never invent screen text.
+
+            If no action is needed:
+            "actions":[]
+
+            If asked who your boss is, say exactly:
+            Prem is my boss.
+
+            PHONE INFORMATION:
+            $info
+            """.trimIndent()
+
+        val messages =
+            JSONArray()
+                .put(
+                    JSONObject()
+                        .put("role", "system")
+                        .put("content", system)
+                )
+                .put(
+                    JSONObject()
+                        .put("role", "user")
+                        .put("content", user)
+                )
+
+        val body =
+            JSONObject()
+                .put("model", MODEL)
+                .put("messages", messages)
+                .put("temperature", 0.3)
+                .put(
+                    "response_format",
+                    JSONObject()
+                        .put("type", "json_object")
+                )
 
         var connection: HttpURLConnection? = null
 
         try {
-
-            val body =
-                JSONObject()
-                    .put("prompt", user)
-                    .put("info", info)
 
             connection =
                 URL(API_URL)
@@ -51,8 +113,13 @@ object Brain {
             connection.readTimeout = 30000
 
             connection.setRequestProperty(
+                "Authorization",
+                "Bearer $apiKey"
+            )
+
+            connection.setRequestProperty(
                 "Content-Type",
-                "application/json; charset=UTF-8"
+                "application/json"
             )
 
             connection.setRequestProperty(
@@ -61,91 +128,63 @@ object Brain {
             )
 
             connection.doOutput = true
-            connection.doInput = true
 
             connection.outputStream.use { output ->
-
                 output.write(
                     body.toString()
                         .toByteArray(Charsets.UTF_8)
                 )
-
-                output.flush()
             }
 
-            val responseCode =
+            val code =
                 connection.responseCode
 
             val stream =
-                if (responseCode in 200..299) {
+                if (code in 200..299) {
                     connection.inputStream
                 } else {
                     connection.errorStream
                 }
 
             val response =
-                stream?.bufferedReader()?.use {
-                    it.readText()
-                } ?: ""
+                stream
+                    ?.bufferedReader()
+                    ?.use { it.readText() }
+                    ?: ""
 
-            // IMPORTANT:
-            // Return the REAL server error.
-            if (responseCode !in 200..299) {
+            if (code !in 200..299) {
 
-                var serverMessage = response
+                var message = response
 
                 try {
 
-                    val errorJson =
+                    message =
                         JSONObject(response)
-
-                    serverMessage =
-                        errorJson.optString(
-                            "error",
-                            response
-                        )
+                            .optJSONObject("error")
+                            ?.optString(
+                                "message",
+                                response
+                            )
+                            ?: response
 
                 } catch (_: Exception) {
                 }
 
                 throw Exception(
-                    "SERVER $responseCode: $serverMessage"
+                    "Groq $code: " +
+                        message.take(250)
                 )
             }
 
-            if (response.isBlank()) {
-                throw Exception(
-                    "Server returned an empty response"
-                )
-            }
-
-            val outer =
+            val data =
                 JSONObject(response)
 
             val content =
-                outer.optString(
-                    "content",
-                    ""
-                )
-
-            if (content.isBlank()) {
-
-                throw Exception(
-                    "Server response has no content: $response"
-                )
-            }
-
-            history.add(
-                JSONObject()
-                    .put(
-                        "role",
-                        "assistant"
-                    )
-                    .put(
-                        "content",
-                        content
-                    )
-            )
+                data
+                    .getJSONArray("choices")
+                    .getJSONObject(0)
+                    .getJSONObject("message")
+                    .getString("content")
 
             return try {
 
@@ -154,10 +193,7 @@ object Brain {
             } catch (_: Exception) {
 
                 JSONObject()
-                    .put(
-                        "say",
-                        content
-                    )
+                    .put("say", content)
                     .put(
                         "actions",
                         JSONArray()
@@ -167,24 +203,6 @@ object Brain {
                         false
                     )
             }
-
-        } catch (e: Exception) {
-
-            if (
-                history.isNotEmpty() &&
-                history.last()
-                    .optString("role") == "user"
-            ) {
-
-                history.removeAt(
-                    history.size - 1
-                )
-            }
-
-            throw Exception(
-                e.message
-                    ?: "Unknown AI connection error"
-            )
 
         } finally {
 
